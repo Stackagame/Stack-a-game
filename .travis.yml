@@ -15,14 +15,16 @@ install:
 before_script:
   - psql -c 'create database "stackagame-test";' -U postgres # remember to change this name if you change it elsewhere (e.g. package.json)
 script:
-  - npm test             # test the code
+  - npm test # test the code
   - npm run build-client # make the bundle
-
-# before_deploy:
-#   - rm -rf node_modules # omit from the tarball, since we skip cleanup
-# deploy:
-#   skip_cleanup: true # prevents travis from deleting the build
-#   provider: heroku
-#   app: YOUR-HEROKU-APP-NAME-HERE # see README
-#   api_key:
-#     secure: YOUR-***ENCRYPTED***-API-KEY-HERE # see README
+before_deploy: # omit node_modules, since we set skip_cleanup below
+  - rm -rf node_modules
+deploy: # see README for details on these keys
+  # prevents travis from deleting the build
+  skip_cleanup: true
+  provider: heroku
+  # app should be your heroku app name; see README
+  app: stackagame
+  # the secure key indicates an encrypted value; see README
+  api_key:
+    secure: kOV33ApBzdIjbiDV7JdppcnUCOBs8E+a3C0MjdqBxhGMwcJ+8XWPLbsEUZAho4MTfPgigLSQXtag9T3QQHvwHhmClci2vACgPyDMzm/v8Hq6tCHjEHbkmy7+wEMGZQed+qpt+ejn8MB3q5RmqcBaI2Z0c+jCCnW2caCUJDyUzUFVEp2ucMgRZZDzDkjUOoDJxiGS/9LHvZqoDkwXQOsMuystU6Wlvu9/+EO/U5089thXuBe/R92X3w9GrwTHnvkhvXRV4gDUmL46ubcoOJmN5YgCNF2JHlOwAjBZVL1cmJhC62Qi/yRZCswcm7ymKFDq6gwvnO2dAs1qzOmI0NPaimTU+vI8QCkB76+YwrdYGAnXW7JQYI5SwmVYw0oO4ahteN4tTA1uX3FQ7k6fmwf3FmG7iORG9iFZtUKptZtebvTo/Amg7fcPwCOljntL2DOJAsBueRPz3CcVly8onWfiMh7tx7g4Waqzvtax4tHWMNDf9dmFQwMKpOjMhBGIQxsrph2eCtUe1bEWMB2ayDZpU+GFdUjv+3dIpSsZCXZmeGkrnKfRCl3ldYeebiVJhBQedlZ/wxr/6X2xBWQIn/qBdMWFUmoAJuK9mrxqwJjY8hSrAv4Xb7F4QN1aFJkEgZFRrtsfc09Gmd2HoGCKAmC3EsR+RSQDUU3ShGEJk7IaJWg=
