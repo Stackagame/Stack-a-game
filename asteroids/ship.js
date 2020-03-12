@@ -1,15 +1,19 @@
 /* eslint-disable default-case */
 // ship creation
 import {degreesToRadians, paintShip, thrustAnimation} from './Utils.js'
+import {createAsteroids, paintRoids} from './asteroids.js'
 const FPS = 30 // frames per second
 const canvas = document.getElementById('canvas')
 const context = canvas.getContext('2d')
+context.canvas.width = window.innerWidth
+context.canvas.height = window.innerHeight
+
 const shipSize = 30 // ship height
 const turnSpeed = 360 // turn speed in degrees/second
 const shipThrust = 5 // acceleration of the ship in pixel per second
 const friction = 0.7 // friction of space (0 = no friction, 1 = a lot of friction)
 
-const ship = {
+export const ship = {
   x: canvas.width / 2,
   y: canvas.height / 2,
   radius: shipSize / 2,
@@ -75,6 +79,10 @@ const update = () => {
   // draw ship
   paintShip(ship, shipSize, context)
 
+  // draw asteroids
+  paintRoids(context, shipSize)
+  console.log()
+
   // rotate ship
   ship.angle += ship.rotation
 
@@ -89,9 +97,9 @@ const update = () => {
   else if (ship.y > canvas.height + ship.radius) ship.y = 0 - ship.radius
 
   // center of the ship
-  context.fillStyle = 'red'
+  // context.fillStyle = 'red'
   // x - 1, x - 1, 2px, 2px
-  context.fillRect(ship.x - 1, ship.y - 1, 2, 2)
+  // context.fillRect(ship.x - 1, ship.y - 1, 2, 2)
 }
 
 // game loop

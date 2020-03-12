@@ -4,6 +4,10 @@ export const degreesToRadians = degree => {
   return degree / 180 * Math.PI
 }
 
+export const randomAngle = () => {
+  return Math.random() * Math.PI * 2
+}
+
 export const paintShip = (ship, shipSize, context) => {
   context.strokeStyle = 'white'
   context.lineWidth = shipSize / 20
