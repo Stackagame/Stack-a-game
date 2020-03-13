@@ -1,7 +1,14 @@
+/* eslint-disable max-statements */
+/* eslint-disable complexity */
 /* eslint-disable default-case */
 // ship creation
 import {degreesToRadians, paintShip, thrustAnimation} from './Utils.js'
-import {createAsteroids, paintRoids} from './asteroids.js'
+import {
+  createAsteroids,
+  paintRoids,
+  distanceBetween,
+  collisionChecker
+} from './asteroids.js'
 const FPS = 30 // frames per second
 const canvas = document.getElementById('canvas')
 const context = canvas.getContext('2d')
@@ -12,20 +19,30 @@ const shipSize = 30 // ship height
 const turnSpeed = 360 // turn speed in degrees/second
 const shipThrust = 5 // acceleration of the ship in pixel per second
 const friction = 0.7 // friction of space (0 = no friction, 1 = a lot of friction)
+const shipBounding = false // show collision bounding;
+const shipStealth = 2 // invisibility duration
+const shipStealthBlink = 0.1 // invisibility blink
 
-export const ship = {
-  x: canvas.width / 2,
-  y: canvas.height / 2,
-  radius: shipSize / 2,
-  // 90 N, 0 E, -90 S, 180 W
-  angle: degreesToRadians(90), // converting the angle of the ship from degrees to radians
-  rotation: 0,
-  thrusting: false,
-  thrust: {
-    x: 0,
-    y: 0
+const newShip = () => {
+  return {
+    x: canvas.width / 2,
+    y: canvas.height / 2,
+    radius: shipSize / 2,
+    // 90 N, 0 E, -90 S, 180 W
+    angle: degreesToRadians(90), // converting the angle of the ship from degrees to radians
+    blinkNum: Math.ceil(shipStealth / shipStealthBlink),
+    blinkTime: Math.ceil(shipStealthBlink * FPS),
+    explodeTime: 0,
+    rotation: 0,
+    thrusting: false,
+    thrust: {
+      x: 0,
+      y: 0
+    }
   }
 }
+
+export let ship = newShip()
 
 // both take keyEvents
 const keyDown = e => {
@@ -61,6 +78,9 @@ document.addEventListener('keydown', keyDown)
 document.addEventListener('keyup', keyUp)
 
 const update = () => {
+  const blinkOn = ship.blinkNum % 2 === 0
+  const exploding = ship.explodeTime > 0
+
   // draw space
   context.fillStyle = 'black'
   context.fillRect(0, 0, canvas.width, canvas.height)
@@ -70,25 +90,72 @@ const update = () => {
     ship.thrust.x += shipThrust * Math.cos(ship.angle) / FPS
     ship.thrust.y -= shipThrust * Math.sin(ship.angle) / FPS
     // draw the thruster
-    thrustAnimation(ship, shipSize, context)
+    if (!exploding && blinkOn) thrustAnimation(ship, shipSize, context)
   } else {
     ship.thrust.x -= friction * ship.thrust.x / FPS
     ship.thrust.y -= friction * ship.thrust.y / FPS
   }
 
   // draw ship
-  paintShip(ship, shipSize, context)
+  if (!exploding) {
+    if (blinkOn) {
+      paintShip(ship, shipSize, context)
+    }
+    if (ship.blinkNum > 0) {
+      ship.blinkTime--
+
+      if (ship.blinkTime === 0) {
+        ship.blinkTime = Math.ceil(shipStealthBlink * FPS)
+        ship.blinkNum--
+      }
+    }
+  } else {
+    // draw explotion
+    const explotionColors = ['darkred', 'red', 'orange', 'yellow', 'white']
+    let explotionMultiplier = 1.7
+    for (let i = 0; i < 5; i++) {
+      context.fillStyle = explotionColors[i]
+      context.beginPath()
+      context.arc(
+        ship.x,
+        ship.y,
+        ship.radius * explotionMultiplier,
+        0,
+        Math.PI * 2,
+        false
+      )
+      explotionMultiplier -= 0.3
+      context.fill()
+    }
+  }
+
+  if (shipBounding) {
+    context.strokeStyle = 'blue'
+    context.beginPath()
+    context.arc(ship.x, ship.y, ship.radius, 0, Math.PI * 2, false)
+    context.stroke()
+  }
 
   // draw asteroids
   paintRoids(context, shipSize)
-  console.log()
 
-  // rotate ship
-  ship.angle += ship.rotation
+  if (!exploding) {
+    // check collisions
+    if (ship.blinkNum === 0) collisionChecker()
 
-  // move the ship
-  ship.x += ship.thrust.x
-  ship.y += ship.thrust.y
+    // rotate ship
+    ship.angle += ship.rotation
+
+    // move the ship
+    ship.x += ship.thrust.x
+    ship.y += ship.thrust.y
+  } else {
+    ship.explodeTime--
+
+    if (!ship.explodeTime) {
+      ship = newShip()
+    }
+  }
 
   // handle edge
   if (ship.x < 0 - ship.radius) ship.x = canvas.width + ship.radius

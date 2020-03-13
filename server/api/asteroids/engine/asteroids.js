@@ -1,3 +1,4 @@
+/* eslint-disable complexity */
 import {degreesToRadians, randomAngle} from './Utils.js'
 import {ship} from './ship.js'
 const canvas = document.getElementById('canvas')
@@ -5,12 +6,14 @@ const context = canvas.getContext('2d')
 context.canvas.width = window.innerWidth
 context.canvas.height = window.innerHeight
 
-const roidsNum = 10 // starting num of asteroids;
+const roidsNum = 30 // starting num of asteroids;
 const roidsSize = 100 // starting size of asteroids
 const roidsJag = 0.3 // 0 = no jaggedness, 1 = very jagged
 const roidsSpeed = 50 // max starting speed
 const roidsVertex = 10
 const FPS = 30
+const roidBounding = true
+const shipExplotion = 0.3 // duration of the ship explotion;
 
 let roids = []
 
@@ -37,9 +40,29 @@ const newAsteroid = (x, y) => {
 
   return roid
 }
-
-const distanceBetween = (x1, y1, x2, y2) => {
+export const distanceBetween = (x1, y1, x2, y2) => {
   return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2))
+}
+
+const explodeShip = () => {
+  ship.explodeTime = Math.ceil(shipExplotion * FPS)
+  context.fillStyle = 'red'
+  context.strokeStyle = 'red'
+  context.beginPath()
+  context.arc(ship.x, ship.y, ship.radius, 0, Math.PI * 2, false)
+  context.fill()
+  context.stroke()
+}
+
+export const collisionChecker = () => {
+  for (let i = 0; i < roids.length; i++) {
+    if (
+      distanceBetween(ship.x, ship.y, roids[i].x, roids[i].y) <
+      ship.radius + roids[i].radius
+    ) {
+      explodeShip()
+    }
+  }
 }
 
 export const createAsteroids = () => {
@@ -61,16 +84,16 @@ export const createAsteroids = () => {
 
 createAsteroids()
 
-export const paintRoids = shipSize => {
-  context.lineWidth = 5
-  let color = ''
-  for (let i = 0; i <= 6; i++) {
-    if (!color) color += '#'
-    else color += `${Math.floor(Math.random() * (6 - 0 + 1) + 0)}`
-  }
-  context.strokeStyle = color
-
+export const paintRoids = () => {
   for (let i = 0; i < roids.length; i++) {
+    context.lineWidth = 5
+    let color = ''
+    for (let j = 0; j <= 6; j++) {
+      if (!color) color += '#'
+      else color += `${Math.floor(Math.random() * (6 - 0 + 1) + 0)}`
+    }
+    context.strokeStyle = color
+
     // asteroid properties
     const x = roids[i].x
     const y = roids[i].y
@@ -97,8 +120,25 @@ export const paintRoids = shipSize => {
     context.closePath()
     context.stroke()
 
+    if (roidBounding) {
+      context.strokeStyle = 'blue'
+      context.beginPath()
+      context.arc(x, y, radius, 0, Math.PI * 2, false)
+      context.stroke()
+    }
+
     // asteroid movement
     roids[i].x += roids[i].xVelocity
     roids[i].y += roids[i].yVelocity
+
+    if (roids[i].x < 0 - roids[i].radius)
+      roids[i].x = canvas.width + roids[i].radius
+    else if (roids[i].x > canvas.width + roids[i].radius)
+      roids[i].x = 0 - roids[i].r
+
+    if (roids[i].y < 0 - roids[i].radius)
+      roids[i].y = canvas.height + roids[i].radius
+    else if (roids[i].y > canvas.height + roids[i].radius)
+      roids[i].y = 0 - roids[i].r
   }
 }
