@@ -142,3 +142,27 @@ export const paintRoids = () => {
       roids[i].y = 0 - roids[i].r
   }
 }
+export const hitDetect = () => {
+  // debugger
+  // detect hit on asteroids
+  let astX, astY, astR, laserX, laserY
+  for (let i = roids.length - 1; i >= 0; i--) {
+    astX = roids[i].x
+    astY = roids[i].y
+    astR = roids[i].radius
+
+    // loop over lasers
+    for (let j = ship.lasers.length - 1; j >= 0; j--) {
+      laserX = ship.lasers[j].x
+      laserY = ship.lasers[j].y
+
+      if (distanceBetween(astX, astY, laserX, laserY) < astR) {
+        // remove the laser
+        ship.lasers.splice(j, 1)
+        // remove the roid
+        roids.splice(i, 1)
+        break
+      }
+    }
+  }
+}
