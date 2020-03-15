@@ -1,33 +1,47 @@
 /* eslint-disable complexity */
 import {degreesToRadians, randomAngle} from './Utils.js'
-import {ship} from './ship.js'
+import {ship, newGame} from './ship.js'
 const canvas = document.getElementById('canvas')
 const context = canvas.getContext('2d')
 context.canvas.width = window.innerWidth
 context.canvas.height = window.innerHeight
-
-const roidsNum = 30 // starting num of asteroids;
+const roidsNum = 1 // starting num of asteroids;
 const roidsSize = 100 // starting size of asteroids
 const roidsJag = 0.3 // 0 = no jaggedness, 1 = very jagged
 const roidsSpeed = 50 // max starting speed
 const roidsVertex = 10
 const FPS = 30
-const roidBounding = true
+const roidBounding = false
 const shipExplotion = 0.3 // duration of the ship explotion;
+const laserExplodeDur = 0.1 // duration of the lasers explotion
+let textFadeTime = 2.5
+const textSize = 40
 
-let roids = []
+let roids,
+  level = 0,
+  text,
+  textAlpha
 
-const newAsteroid = (x, y) => {
-  // debugger
+const newAsteroid = (x, y, radius) => {
+  const lvlMult = 1 + 0.1 * level
+
   const roid = {
     x: x,
     y: y,
     // if under 0.5 go right else go left;
     xVelocity:
-      Math.random() * roidsSpeed / FPS * (Math.random() < 0.5 ? 1 : -1),
+      Math.random() *
+      roidsSpeed *
+      lvlMult /
+      FPS *
+      (Math.random() < 0.5 ? 1 : -1),
     yVelocity:
-      Math.random() * roidsSpeed / FPS * (Math.random() < 0.5 ? 1 : -1),
-    radius: roidsSize / 2,
+      Math.random() *
+      roidsSpeed *
+      lvlMult /
+      FPS *
+      (Math.random() < 0.5 ? 1 : -1),
+    radius: radius,
     angle: randomAngle(),
     // this would give us a random number between 0 and roidsVertex plus the half of that number
     vertex: Math.floor(Math.random() * (roidsVertex + 1) + roidsVertex / 2),
@@ -40,6 +54,7 @@ const newAsteroid = (x, y) => {
 
   return roid
 }
+
 export const distanceBetween = (x1, y1, x2, y2) => {
   return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2))
 }
@@ -54,22 +69,11 @@ const explodeShip = () => {
   context.stroke()
 }
 
-export const collisionChecker = () => {
-  for (let i = 0; i < roids.length; i++) {
-    if (
-      distanceBetween(ship.x, ship.y, roids[i].x, roids[i].y) <
-      ship.radius + roids[i].radius
-    ) {
-      explodeShip()
-    }
-  }
-}
-
 export const createAsteroids = () => {
   // debugger
   roids = []
   let x, y
-  for (let i = 0; i < roidsNum; i++) {
+  for (let i = 0; i < roidsNum + level; i++) {
     do {
       // randomizer for the location in our canvas, where the asteroid will appear
       x = Math.floor(Math.random() * canvas.width)
@@ -78,11 +82,65 @@ export const createAsteroids = () => {
       distanceBetween(ship.x, ship.y, x, y) <
       roidsSize * 2 + ship.radius
     )
-    roids.push(newAsteroid(x, y))
+    roids.push(newAsteroid(x, y, Math.ceil(roidsSize / 2)))
   }
 }
 
-createAsteroids()
+export const newLevel = () => {
+  text = 'Level ' + (level + 1)
+  textAlpha = 1.0
+  createAsteroids()
+}
+
+newGame()
+
+if (textAlpha >= 0) {
+  // debugger
+  context.textAlign = 'center'
+  context.textBaseline = 'middle'
+  context.fillStyle = 'blue'
+  context.font = 'small-caps ' + textSize + 'px dejavu sans mono'
+  context.fillText(text, canvas.width / 2, canvas.height * 0.75)
+  textAlpha -= 1.0 / textFadeTime / FPS
+}
+
+const destroyAsteroid = i => {
+  const x = roids[i].x
+  const y = roids[i].y
+  const radius = roids[i].radius
+
+  // split the roid in two;
+
+  if (radius === Math.ceil(roidsSize / 2)) {
+    roids.push(newAsteroid(x, y, Math.ceil(roidsSize / 4)))
+    roids.push(newAsteroid(x, y, Math.ceil(roidsSize / 4)))
+  } else if (radius === Math.ceil(roidsSize / 4)) {
+    roids.push(newAsteroid(x, y, Math.ceil(roidsSize / 8)))
+    roids.push(newAsteroid(x, y, Math.ceil(roidsSize / 8)))
+  }
+
+  // destroy roid
+  roids.splice(i, 1)
+
+  // new level when all roids destroyed
+  if (roids.length === 0) {
+    level++
+    newLevel()
+  }
+}
+
+export const collisionChecker = () => {
+  for (let i = 0; i < roids.length; i++) {
+    if (
+      distanceBetween(ship.x, ship.y, roids[i].x, roids[i].y) <
+      ship.radius + roids[i].radius
+    ) {
+      explodeShip()
+      destroyAsteroid(i)
+      break
+    }
+  }
+}
 
 export const paintRoids = () => {
   for (let i = 0; i < roids.length; i++) {
@@ -156,11 +214,15 @@ export const hitDetect = () => {
       laserX = ship.lasers[j].x
       laserY = ship.lasers[j].y
 
-      if (distanceBetween(astX, astY, laserX, laserY) < astR) {
+      if (
+        ship.lasers[j].explodeTime === 0 &&
+        distanceBetween(astX, astY, laserX, laserY) < astR
+      ) {
         // remove the laser
-        ship.lasers.splice(j, 1)
-        // remove the roid
-        roids.splice(i, 1)
+        // ship.lasers.splice(j, 1)
+        // remove the roid and activate explotion
+        ship.lasers[j].explodeTime = Math.ceil(laserExplodeDur * FPS)
+        destroyAsteroid(i)
         break
       }
     }
