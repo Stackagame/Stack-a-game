@@ -294,11 +294,6 @@ const update = () => {
     if (ship.lasers[i].y < 0) ship.lasers[i].y = canvas.height
     else if (ship.lasers[i].y > canvas.height) ship.lasers[i].y = 0
   }
-
-  // center of the ship
-  // context.fillStyle = 'red'
-  // x - 1, x - 1, 2px, 2px
-  // context.fillRect(ship.x - 1, ship.y - 1, 2, 2)
 }
 
 // game loop
