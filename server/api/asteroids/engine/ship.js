@@ -8,7 +8,8 @@ import {
   paintRoids,
   distanceBetween,
   collisionChecker,
-  hitDetect
+  hitDetect,
+  newLevel
 } from './asteroids.js'
 const FPS = 30 // frames per second
 const canvas = document.getElementById('canvas')
@@ -26,6 +27,8 @@ const shipStealthBlink = 0.1 // invisibility blink
 const laserMax = 10 // max amount of lasers on screen at once
 const laserSpeed = 500 // speed of lasers in pixers per second
 const laserDist = 0.3 // max laser distance
+
+export let ship
 
 const newShip = () => {
   return {
@@ -48,7 +51,12 @@ const newShip = () => {
   }
 }
 
-export let ship = newShip()
+ship = newShip()
+
+export const newGame = () => {
+  ship = newShip()
+  newLevel()
+}
 
 const shootLaser = () => {
   if (ship.canShoot && ship.lasers.length < laserMax) {
@@ -59,7 +67,8 @@ const shootLaser = () => {
       y: ship.y - 4 / 3 * ship.radius * Math.sin(ship.angle),
       xVel: laserSpeed * Math.cos(ship.angle) / FPS,
       yVel: -laserSpeed * Math.sin(ship.angle) / FPS,
-      dist: 0
+      dist: 0,
+      explodeTime: 0
     })
   }
   // prevent shooting
@@ -158,17 +167,64 @@ const update = () => {
 
   // draw the lasers
   for (let i = 0; i < ship.lasers.length; i++) {
-    context.fillStyle = 'salmon'
-    context.beginPath()
-    context.arc(
-      ship.lasers[i].x,
-      ship.lasers[i].y,
-      shipSize / 15,
-      0,
-      Math.PI * 2,
-      false
-    )
-    context.fill()
+    if (ship.lasers[i].explodeTime === 0) {
+      context.fillStyle = 'salmon'
+      context.beginPath()
+      context.arc(
+        ship.lasers[i].x,
+        ship.lasers[i].y,
+        shipSize / 15,
+        0,
+        Math.PI * 2,
+        false
+      )
+      context.fill()
+    } else {
+      context.fillStyle = 'salmon'
+      context.beginPath()
+      context.arc(
+        ship.lasers[i].x,
+        ship.lasers[i].y,
+        ship.radius * 0.75,
+        0,
+        Math.PI * 2,
+        false
+      )
+      context.fill()
+      context.fillStyle = 'orange'
+      context.beginPath()
+      context.arc(
+        ship.lasers[i].x,
+        ship.lasers[i].y,
+        ship.radius * 0.75,
+        0,
+        Math.PI * 2,
+        false
+      )
+      context.fill()
+      context.fillStyle = 'red'
+      context.beginPath()
+      context.arc(
+        ship.lasers[i].x,
+        ship.lasers[i].y,
+        ship.radius * 0.75,
+        0,
+        Math.PI * 2,
+        false
+      )
+      context.fill()
+      context.fillStyle = 'salmon'
+      context.beginPath()
+      context.arc(
+        ship.lasers[i].x,
+        ship.lasers[i].y,
+        ship.radius * 0.75,
+        0,
+        Math.PI * 2,
+        false
+      )
+      context.fill()
+    }
   }
 
   if (shipBounding) {
@@ -214,13 +270,23 @@ const update = () => {
       continue
     }
 
-    ship.lasers[i].x += ship.lasers[i].xVel
-    ship.lasers[i].y += ship.lasers[i].yVel
+    // handle the explotion
+    if (ship.lasers[i].explodeTime > 0) {
+      ship.lasers[i].explodeTime--
 
-    // calculate distance travelled
-    ship.lasers[i].dist += Math.sqrt(
-      Math.pow(ship.lasers[i].xVel, 2) + Math.pow(ship.lasers[i].yVel, 2)
-    )
+      if (ship.lasers[i].explodeTime === 0) {
+        ship.lasers.splice(i, 1)
+        continue
+      }
+    } else {
+      ship.lasers[i].x += ship.lasers[i].xVel
+      ship.lasers[i].y += ship.lasers[i].yVel
+
+      // calculate distance travelled
+      ship.lasers[i].dist += Math.sqrt(
+        Math.pow(ship.lasers[i].xVel, 2) + Math.pow(ship.lasers[i].yVel, 2)
+      )
+    }
 
     // handle edge of screen
     if (ship.lasers[i].x < 0) ship.lasers[i].x = canvas.width
@@ -228,11 +294,6 @@ const update = () => {
     if (ship.lasers[i].y < 0) ship.lasers[i].y = canvas.height
     else if (ship.lasers[i].y > canvas.height) ship.lasers[i].y = 0
   }
-
-  // center of the ship
-  // context.fillStyle = 'red'
-  // x - 1, x - 1, 2px, 2px
-  // context.fillRect(ship.x - 1, ship.y - 1, 2, 2)
 }
 
 // game loop
